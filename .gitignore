@@ -1,0 +1,11 @@
+# envs
+.env
+.venv
+env/
+venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# test images
+.jpg
