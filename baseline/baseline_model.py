@@ -75,10 +75,7 @@ def train():
             if i % 100 == 0:
                 print('Epoch:' + str(epoch) + ", Iteration: " + str(i)
                     + ", training cost = " + str(cost))
-        train_accuracy, _ , _, _ = calculate_accuracy(train_loader)
-        test_accuracy, _, _, _ = calculate_accuracy(test_loader)
-        print('Train accuracy: %f' % train_accuracy)
-        print('Test accuracy: %f' % test_accuracy)
+        log_accuracy()
 
 def calculate_accuracy(loader):
     total = 0
@@ -101,9 +98,13 @@ def calculate_accuracy(loader):
 
     return 100 * correct / total, all_images, all_preds, all_labels
 
-train()
-train_accuracy, _ , _, _ = calculate_accuracy(train_loader)
-test_accuracy, _, _, _ = calculate_accuracy(test_loader)
 
-print('Train accuracy: %f' % train_accuracy)
-print('Test accuracy: %f' % test_accuracy)
+def log_accuracy():
+    train_accuracy, _ , _, _ = calculate_accuracy(train_loader)
+    test_accuracy, _, _, _ = calculate_accuracy(test_loader)
+
+    print('Train accuracy: %f' % train_accuracy)
+    print('Test accuracy: %f' % test_accuracy)
+
+train()
+log_accuracy()
