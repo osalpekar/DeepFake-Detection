@@ -9,3 +9,7 @@ venv/
 
 # test images
 .jpg
+
+__pycache__/
+checkpoints/
+logs/
