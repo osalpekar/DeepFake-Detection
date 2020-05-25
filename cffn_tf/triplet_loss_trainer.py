@@ -11,6 +11,7 @@ import utils
 global n_classes
 import triplet_loss as tri
 import os.path
+from data_reader import setup_inputs
 
 
 '''
@@ -161,69 +162,6 @@ def ResNet(_X, isTraining):
     return out, feat, saliency
 
 
-#==========================================================================
-#=============Reading data in multithreading manner========================
-#==========================================================================
-def read_labeled_image_list(image_list_file, training_img_dir):
-    f = open(image_list_file, 'r')
-    filenames = []
-    labels = []
-
-    for line in f:
-        filename, label = line[:-1].split(' ')
-        filename = training_img_dir+filename
-        filenames.append(filename)
-        labels.append(int(label))
-        
-    return filenames, labels
-    
-    
-def read_images_from_disk(input_queue, size1=64):
-    label = input_queue[1]
-    fn=input_queue[0]
-    file_contents = tf.read_file(input_queue[0])
-    example = tf.image.decode_jpeg(file_contents, channels=3)
-    
-    #example = tf.image.decode_png(file_contents, channels=3, name="dataset_image") # png fo rlfw
-    example=tf.image.resize_images(example, [size1,size1])
-    return example, label, fn
-    
-def setup_inputs(sess, filenames, training_img_dir, image_size=64, crop_size=64, isTest=False, batch_size=128):
-    
-    # Read each image file
-    image_list, label_list = read_labeled_image_list(filenames, training_img_dir)
-
-    images = tf.cast(image_list, tf.string)
-    labels = tf.cast(label_list, tf.int64)
-     # Makes an input queue
-    if isTest is False:
-        isShuffle = True
-        numThr = 4
-    else:
-        isShuffle = False
-        numThr = 1
-        
-    input_queue = tf.train.slice_input_producer([images, labels], shuffle=isShuffle)
-    image, y,fn = read_images_from_disk(input_queue)
-
-    channels = 3
-    image.set_shape([None, None, channels])
-        
-    # Crop and other random augmentations
-    if isTest is False:
-        image = tf.image.random_flip_left_right(image)
-        image = tf.image.random_saturation(image, .95, 1.05)
-        image = tf.image.random_brightness(image, .05)
-        image = tf.image.random_contrast(image, .95, 1.05)
-        
-    image = tf.cast(image, tf.float32)/255.0
-    
-    image, y,fn = tf.train.batch([image, y, fn], batch_size=batch_size, capacity=batch_size*3, num_threads=numThr, name='labels_and_images')
-
-    tf.train.start_queue_runners(sess=sess)
-
-    return image, y, fn, len(label_list)
-
 '''
 Maia training function:
 
@@ -254,14 +192,11 @@ sess = tf.Session(config=config)
 
 train_file = "/home/ubuntu/prep_data/cffn_classifier_train.txt"
 val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
-#pairs_file = "/home/ubuntu/prep_data/cffn_pairs.txt"
 image_dir = "/home/ubuntu/prep_data/"
 
 print("Preparing the training & validation data...")
-#pth1 = os.path.join(data_dir, "train_wo_%s.txt"%(TRAIN_WO_SPEC_GAN))
-train_data, train_labels, filelist1, glen1 = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
-#pth2 = os.path.join(data_dir, "val_wo_%s.txt"%(TRAIN_WO_SPEC_GAN))
-val_data, val_labels, filelist2, tlen1 = setup_inputs(sess, val_file, image_dir, batch_size=10,isTest=True)
+train_data, train_labels, glen1 = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
+val_data, val_labels, tlen1 = setup_inputs(sess, val_file, image_dir, batch_size=10,isTest=True)
 print("Found %d training images, and %d validation images..." % (glen1, tlen1))
 
 max_iter = glen1*80

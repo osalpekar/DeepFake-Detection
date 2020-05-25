@@ -232,7 +232,7 @@ while (step * batch_size) < max_iter:
         print("Iter=%d/epoch=%d, Loss=%.6f, Contrastive loss=%.6f, Training Accuracy=%.6f, lr=%f" % (step*batch_size, epoch1 ,loss, sia_val, acc, lr))
         writer.add_summary(summaries_string, step)
     
-    if step>0 and (step % (display_step*20) == 0):
+    if step>0 and (step % (display_step) == 0):
         rounds = tlen1 // 1000
         valacc=[]
         vis=[]
@@ -251,6 +251,8 @@ while (step * batch_size) < max_iter:
         #utils.batchimwrite2(sal, 'saliency_img/sal')
         #utils.batchimwrite2(valimg, 'saliency_img/img')
 
+        print("valacc:")
+        print(valacc)
         print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
 
   
