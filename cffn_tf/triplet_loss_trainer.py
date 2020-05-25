@@ -32,15 +32,18 @@ Data Preparation
         The data list in validation set is the same structure with training set.
 #===========================================================================
 '''
+
+# Some Basic Setup And Hypterparameters
 TRAIN_WO_SPEC_GAN = 'all'                         
 n_classes = 2
-#data_dir = '../../DCGAN-LSGAN-WGAN-WGAN-GP-Tensorflow/data/'
-#image_dir = '../../DCGAN-LSGAN-WGAN-WGAN-GP-Tensorflow/'
 batch_size = 64
 display_step = 80
 learning_rate = tf.placeholder(tf.float32)      # Learning rate to be fed
 lr = 1e-4     
 margin = 0.8
+num_cffn_epochs = 3
+num_classifier_epochs = 27
+total_epochs = num_cffn_epochs + num_classifier_epochs
 
 #========================Mode basic components============================
 def activation(x,name="activation"):
@@ -182,7 +185,6 @@ iter = tf.placeholder(tf.int32)
 print('GO!!')
 
 
-# In[ ]:
 
 
 # Setup the tensorflow...
@@ -199,7 +201,7 @@ train_data, train_labels, glen1 = setup_inputs(sess, train_file, image_dir, batc
 val_data, val_labels, tlen1 = setup_inputs(sess, val_file, image_dir, batch_size=10,isTest=True)
 print("Found %d training images, and %d validation images..." % (glen1, tlen1))
 
-max_iter = glen1*80
+max_iter = glen1 * total_epochs
 print("Preparing the training model with learning rate = %.5f..." % (lr))
 
 # Initialize the model for training set and validation sets
@@ -234,7 +236,6 @@ tf.summary.scalar("Triplet_loss", sialoss)
 tf.summary.scalar('Loss', cost)
 tf.summary.scalar('Training_Accuracy', accuracy)
 tf.summary.scalar('Validation_Accuracy', accuracy2)
-# In[ ]:
 
 
 saver = tf.train.Saver()
@@ -253,7 +254,7 @@ while (step * batch_size) < max_iter:
     if (((step*batch_size)%glen1 < batch_size) & (lr==1e-4) & (epoch1 >=3)):
         lr /= 10
     
-    if epoch1 <=3:
+    if epoch1 <= num_cffn_epochs:
         sess.run([sia_optimizer],  feed_dict={learning_rate: lr})
     else:
         sess.run([optimizer],  feed_dict={learning_rate: lr})
@@ -264,28 +265,28 @@ while (step * batch_size) < max_iter:
 
     if step>0 and step % display_step == 0:
         # calculate the loss
-        loss, acc, summaries_string, sia_val = sess.run([cost, accuracy, summaries, sialoss])
-        print("Iter=%d/epoch=%d, Loss=%.6f, Triplet loss=%.6f, Training Accuracy=%.6f, lr=%f" % (step*batch_size, epoch1 ,loss, sia_val, acc, lr))
+        loss, train_accuracy, summaries_string, triplet_loss = sess.run([cost, accuracy, summaries, sialoss])
+        print("Iter=%d/epoch=%d, Loss=%.6f, Triplet loss=%.6f, Training Accuracy=%.6f, lr=%f" % (step*batch_size, epoch1, loss, triplet_loss, train_accuracy, lr))
         writer.add_summary(summaries_string, step)
     
-    if step>0 and (step % (display_step*20) == 0):
-        rounds = tlen1 // 1000
+    if step>0 and (step % (display_step) == 0):
+        #rounds = tlen1 // 10
         #pdb.set_trace()
         valacc=[]
         vis=[]
         tis=[]
-        for k in range(rounds):
-            a2, vi, ti = sess.run([accuracy2, tf.argmax(valpred, 1), val_labels])
-            valacc.append(a2)
-            vis.append(vi)
-            tis.append(ti)
-        tis = np.reshape(np.asarray(tis), [-1])
-        vis = np.reshape(np.asarray(vis), [-1])
-        precision=metrics.precision_score(tis, vis) 
-        recall=metrics.recall_score(tis, vis)
+        #for k in range(rounds):
+        a2, vi, ti = sess.run([accuracy2, tf.argmax(valpred, 1), val_labels])
+        valacc.append(a2)
+        vis.append(vi)
+        tis.append(ti)
+        #tis = np.reshape(np.asarray(tis), [-1])
+        #vis = np.reshape(np.asarray(vis), [-1])
+        precision=0#metrics.precision_score(tis, vis) 
+        recall=0#metrics.recall_score(tis, vis)
         
-        sal, valimg = sess.run([saliency, val_data])
-        utils.batchsalwrite(valimg, sal, tis, vis, 'saliency_img/%s_Detected_'%(TRAIN_WO_SPEC_GAN))
+        #sal, valimg = sess.run([saliency, val_data])
+        #utils.batchsalwrite(valimg, sal, tis, vis, 'saliency_img/%s_Detected_'%(TRAIN_WO_SPEC_GAN))
         
 
         print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
