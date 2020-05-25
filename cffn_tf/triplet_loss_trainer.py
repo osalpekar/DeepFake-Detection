@@ -40,10 +40,10 @@ batch_size = 64
 display_step = 80
 learning_rate = tf.placeholder(tf.float32)      # Learning rate to be fed
 lr = 1e-4     
-beta = 0.001
+regularization_lambda = 0.001
 margin = 0.8
-num_cffn_epochs = 3
-num_classifier_epochs = 12
+num_cffn_epochs = 5
+num_classifier_epochs = 20
 total_epochs = num_cffn_epochs + num_classifier_epochs
 
 #========================Mode basic components============================
@@ -231,22 +231,23 @@ def compute_regularization(classification_weights):
 with tf.name_scope('Loss_and_Accuracy'):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        t_vars=tf.trainable_variables() 
+        t_vars = tf.trainable_variables() 
         #t_vars=[var for var in t_vars if 'Final']
-        cost = tf.losses.sparse_softmax_cross_entropy(labels=train_labels, logits=pred) + beta * compute_regularization(classification_weights) 
+        cost = tf.losses.sparse_softmax_cross_entropy(labels=train_labels, logits=pred) + \
+               regularization_lambda * compute_regularization(classification_weights) 
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=t_vars)
         sia_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(sialoss)
 
     correct_prediction = tf.equal(tf.argmax(pred, 1), train_labels)
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     correct_prediction2 = tf.equal(tf.argmax(valpred, 1), val_labels)
-    accuracy2 = tf.reduce_mean(tf.cast(correct_prediction2, tf.float32))
+    validation_accuracy = tf.reduce_mean(tf.cast(correct_prediction2, tf.float32))
 
   
 tf.summary.scalar("Triplet_loss", sialoss)
 tf.summary.scalar('Loss', cost)
 tf.summary.scalar('Training_Accuracy', accuracy)
-tf.summary.scalar('Validation_Accuracy', accuracy2)
+tf.summary.scalar('Validation_Accuracy', validation_accuracy)
 
 
 saver = tf.train.Saver()
@@ -262,7 +263,7 @@ print("glen1 " + str(glen1))
 start_lr = lr
 while (step * batch_size) < max_iter:
     epoch1=np.floor((step*batch_size)/glen1)
-    if (((step*batch_size)%glen1 < batch_size) & (lr==1e-4) & (epoch1 >=3)):
+    if (((step*batch_size)%glen1 < batch_size) & (lr == 1e-4) & (epoch1 >= num_cffn_epochs)):
         lr /= 10
     
     if epoch1 <= num_cffn_epochs:
@@ -270,24 +271,24 @@ while (step * batch_size) < max_iter:
     else:
         sess.run([optimizer],  feed_dict={learning_rate: lr})
         
-    if (step % 15000==1) & (step>15000):
+    if (step % 15000 == 1) & (step > 15000):
         save_path = saver.save(sess, "checkpoints/tf_deepUD_tri_model_iter_%d_for_%s.ckpt" % (step,TRAIN_WO_SPEC_GAN))
         print("Model saved in file at iteration %d: %s" % (step*batch_size,save_path))
 
-    if step>0 and step % display_step == 0:
+    if step > 0 and step % display_step == 0:
         # calculate the loss
         loss, train_accuracy, summaries_string, triplet_loss = sess.run([cost, accuracy, summaries, sialoss])
         print("Iter=%d/epoch=%d, Loss=%.6f, Triplet loss=%.6f, Training Accuracy=%.6f, lr=%f" % (step*batch_size, epoch1, loss, triplet_loss, train_accuracy, lr))
         writer.add_summary(summaries_string, step)
     
-    if step>0 and (step % (display_step*2) == 0):
+    if step > 0 and (step % (display_step*2) == 0):
         #rounds = tlen1 // 10
         #pdb.set_trace()
         valacc=[]
         vis=[]
         tis=[]
         #for k in range(rounds):
-        a2, vi, ti = sess.run([accuracy2, tf.argmax(valpred, 1), val_labels])
+        a2, vi, ti = sess.run([validation_accuracy, tf.argmax(valpred, 1), val_labels])
         valacc.append(a2)
         vis.append(vi)
         tis.append(ti)
