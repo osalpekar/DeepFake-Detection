@@ -40,6 +40,7 @@ batch_size = 64
 display_step = 80
 learning_rate = tf.placeholder(tf.float32)      # Learning rate to be fed
 lr = 1e-4     
+beta = 0.001
 margin = 0.8
 num_cffn_epochs = 3
 num_classifier_epochs = 12
@@ -141,12 +142,14 @@ def ResNet(_X, isTraining):
     
     # ============ Classifier Learning============
     
+    classification_weights = []
     x_shape = x.get_shape().as_list()
     dense1 = x_shape[1]*x_shape[2]*x_shape[3]
     W = tf.get_variable("featW", [dense1, 128], initializer=tf.truncated_normal_initializer())
     b = tf.get_variable("featB", [128], initializer=tf.truncated_normal_initializer())
     dense1 = tf.reshape(x, [-1, dense1])
     feat = tf.nn.softmax(tf.matmul(dense1, W) + b)
+    classification_weights.append(W)
     
     with tf.variable_scope('Final'):
         x = batchnorm(x, isTraining, name='FinalBn')
@@ -160,9 +163,10 @@ def ResNet(_X, isTraining):
         b = tf.get_variable("FinalB", [n_classes], initializer=tf.truncated_normal_initializer())
 
         out = tf.matmul(x, W) + b
+        classification_weights.append(W)
                             
 
-    return out, feat, saliency
+    return out, feat, saliency, classification_weights
 
 
 '''
@@ -206,9 +210,9 @@ print("Preparing the training model with learning rate = %.5f..." % (lr))
 
 # Initialize the model for training set and validation sets
 with tf.variable_scope("ResNet") as scope:
-    pred, feat,_ = ResNet(train_data, True)
+    pred, feat,_, classification_weights = ResNet(train_data, True)
     scope.reuse_variables()
-    valpred, _, saliency = ResNet(val_data, False)
+    valpred, _, saliency, _ = ResNet(val_data, False)
 
 
 # Forming the triplet loss by hard-triplet sampler  
@@ -216,13 +220,20 @@ with tf.name_scope('Triplet_loss'):
     
     sialoss = tri.batch_hard_triplet_loss(train_labels, feat, margin, squared=False)
 
+def compute_regularization(classification_weights):
+    regularization_loss = 0
+    for weights in classification_weights:
+        regularization_loss += tf.nn.l2_loss(weights) 
+
+    return regularization_loss
+
 # Forming the cross-entropy loss and accuracy for classifier learning
 with tf.name_scope('Loss_and_Accuracy'):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         t_vars=tf.trainable_variables() 
         #t_vars=[var for var in t_vars if 'Final']
-        cost = tf.losses.sparse_softmax_cross_entropy(labels=train_labels, logits=pred)
+        cost = tf.losses.sparse_softmax_cross_entropy(labels=train_labels, logits=pred) + beta * compute_regularization(classification_weights) 
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=t_vars)
         sia_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(sialoss)
 
