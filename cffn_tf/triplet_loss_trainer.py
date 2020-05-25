@@ -41,8 +41,8 @@ display_step = 80
 learning_rate = tf.placeholder(tf.float32)      # Learning rate to be fed
 lr = 1e-4     
 margin = 0.8
-num_cffn_epochs = 2
-num_classifier_epochs = 2
+num_cffn_epochs = 3
+num_classifier_epochs = 12
 total_epochs = num_cffn_epochs + num_classifier_epochs
 
 #========================Mode basic components============================
@@ -250,8 +250,6 @@ print("We are going to train fake detector using ResNet based on triplet loss!!!
 print("glen1 " + str(glen1))
 start_lr = lr
 while (step * batch_size) < max_iter:
-#for epoch in range(total_epochs):
-    #for step in range(glen1/batch_size + 1):
     epoch1=np.floor((step*batch_size)/glen1)
     if (((step*batch_size)%glen1 < batch_size) & (lr==1e-4) & (epoch1 >=3)):
         lr /= 10
@@ -271,7 +269,7 @@ while (step * batch_size) < max_iter:
         print("Iter=%d/epoch=%d, Loss=%.6f, Triplet loss=%.6f, Training Accuracy=%.6f, lr=%f" % (step*batch_size, epoch1, loss, triplet_loss, train_accuracy, lr))
         writer.add_summary(summaries_string, step)
     
-    if step>0 and (step % (display_step*20) == 0):
+    if step>0 and (step % (display_step*2) == 0):
         #rounds = tlen1 // 10
         #pdb.set_trace()
         valacc=[]
