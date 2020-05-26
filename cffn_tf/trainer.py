@@ -17,27 +17,25 @@ from data_reader import setup_inputs
 '''
 #===========================================================================
 Parameters:
-        TRAIN_WO_SPEC_GAN: Excluding GAN. E.f. progressGAN means We dont include progressGAN for tranining phase
         n_classes: Number of classes (2 for now. one for fake and one for real)
         data_dir:  The path to the file list directory
         image_dir: The path to the images directory (if the image list is stored in absoluate path, set this to './')
         margin:    Marginal value in triplet loss function
 Data Preparation
-        All training image list should put on the subfolder 'data' named by train_wo_[TRAIN_WO_SPEC_GAN].txt, wheere
-        the text file should have image path with its label (which GAN) such that 
+        Data should be in /home/ubuntu/prep_data/cffn_classification_{train/val}.txt
+        formatted as follows with 1 being real and 0 fake:
         image_path1 0
         image_path2 1
-        image_path3 5
+        image_path3 1
         image_path4 0
-        The data list in validation set is the same structure with training set.
 #===========================================================================
 '''
 
 # Some Basic Setup And Hypterparameters
-TRAIN_WO_SPEC_GAN = 'all'                         
 n_classes = 2
 batch_size = 64
-display_step = 80
+print_interval = 80
+validation_interval = print_interval * 2
 learning_rate = tf.placeholder(tf.float32)      # Learning rate to be fed
 lr = 1e-4     
 regularization_lambda = 0.001
@@ -180,8 +178,8 @@ if not os.path.isdir('saliency_img'):
     os.mkdir('saliency_img')
 if not os.path.isdir('logs/pair'):
     os.mkdir('logs/pair')
-if not os.path.isdir('logs/pair/%s/'%(TRAIN_WO_SPEC_GAN)):
-    os.mkdir('logs/pair/%s/'%(TRAIN_WO_SPEC_GAN))
+if not os.path.isdir('logs/pair/'):
+    os.mkdir('logs/pair/')
 
                    # Learning rate start
 tst = tf.placeholder(tf.bool)
@@ -254,7 +252,7 @@ init = tf.global_variables_initializer()
 sess.run(init)
 step = 0
 
-writer = tf.summary.FileWriter("logs/pair/%s/"%(TRAIN_WO_SPEC_GAN), sess.graph)
+writer = tf.summary.FileWriter("logs/pair/", sess.graph)
 summaries = tf.summary.merge_all()
 
 print("We are going to train fake detector using ResNet based on triplet loss!!!")
@@ -271,16 +269,16 @@ while (step * batch_size) < max_iter:
         sess.run([optimizer],  feed_dict={learning_rate: lr})
         
     if (step % 15000 == 1) & (step > 15000):
-        save_path = saver.save(sess, "checkpoints/tf_deepUD_tri_model_iter_%d_for_%s.ckpt" % (step,TRAIN_WO_SPEC_GAN))
+        save_path = saver.save(sess, "checkpoints/tf_deepUD_tri_model_iter_%d.ckpt" % (step))
         print("Model saved in file at iteration %d: %s" % (step*batch_size,save_path))
 
-    if step > 0 and step % display_step == 0:
+    if step > 0 and step % print_interval == 0:
         # calculate the loss
         loss, train_accuracy, summaries_string, triplet_loss = sess.run([cost, accuracy, summaries, sialoss])
         print("Iter=%d/epoch=%d, Loss=%.6f, Triplet loss=%.6f, Training Accuracy=%.6f, lr=%f" % (step*batch_size, epoch1, loss, triplet_loss, train_accuracy, lr))
         writer.add_summary(summaries_string, step)
     
-    if step > 0 and (step % (display_step*2) == 0):
+    if step > 0 and (step % validation_interval == 0):
         #rounds = num_val_samples // 10
         #pdb.set_trace()
         valacc=[]
@@ -297,7 +295,7 @@ while (step * batch_size) < max_iter:
         recall=0#metrics.recall_score(tis, vis)
         
         #sal, valimg = sess.run([saliency, val_data])
-        #utils.batchsalwrite(valimg, sal, tis, vis, 'saliency_img/%s_Detected_'%(TRAIN_WO_SPEC_GAN))
+        #utils.batchsalwrite(valimg, sal, tis, vis, 'saliency_img/_Detected_')
         
 
         print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
@@ -305,5 +303,5 @@ while (step * batch_size) < max_iter:
   
     step += 1
 print("Optimization Finished!")
-save_path = saver.save(sess, "checkpoints/tf_deepUD_tri_model_%s.ckpt" % (TRAIN_WO_SPEC_GAN))
+save_path = saver.save(sess, "checkpoints/tf_deepUD_tri_model.ckpt")
 print("Model saved in file: %s" % save_path)
