@@ -48,6 +48,9 @@ margin = 0.8
 num_cffn_epochs = 5
 num_classifier_epochs = 20
 total_epochs = num_cffn_epochs + num_classifier_epochs
+train_file = "/home/ubuntu/prep_data/cffn_classifier_train.txt"
+val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
+image_dir = "/home/ubuntu/prep_data/"
 
 #========================Mode basic components============================
 def activation(x,name="activation"):
@@ -189,9 +192,6 @@ config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
-train_file = "/home/ubuntu/prep_data/cffn_classifier_train.txt"
-val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
-image_dir = "/home/ubuntu/prep_data/"
 
 # Read Training and Validation Data
 train_data, train_labels, num_train_samples = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
