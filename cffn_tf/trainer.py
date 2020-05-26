@@ -201,16 +201,16 @@ val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
 image_dir = "/home/ubuntu/prep_data/"
 
 print("Preparing the training & validation data...")
-train_data, train_labels, glen1 = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
-val_data, val_labels, tlen1 = setup_inputs(sess, val_file, image_dir, batch_size=10,isTest=True)
-print("Found %d training images, and %d validation images..." % (glen1, tlen1))
+train_data, train_labels, num_train_samples = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
+val_data, val_labels, num_val_samples = setup_inputs(sess, val_file, image_dir, batch_size=10, isTest=True)
+print("Found %d training images, and %d validation images..." % (num_train_samples, num_val_samples))
 
-max_iter = glen1 * total_epochs
+max_iter = num_train_samples * total_epochs
 print("Preparing the training model with learning rate = %.5f..." % (lr))
 
 # Initialize the model for training set and validation sets
 with tf.variable_scope("ResNet") as scope:
-    pred, feat,_, classification_weights = ResNet(train_data, True)
+    pred, feat, _, classification_weights = ResNet(train_data, True)
     scope.reuse_variables()
     valpred, _, saliency, _ = ResNet(val_data, False)
 
@@ -232,16 +232,15 @@ with tf.name_scope('Loss_and_Accuracy'):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
         t_vars = tf.trainable_variables() 
-        #t_vars=[var for var in t_vars if 'Final']
         cost = tf.losses.sparse_softmax_cross_entropy(labels=train_labels, logits=pred) + \
                regularization_lambda * compute_regularization(classification_weights) 
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=t_vars)
         sia_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(sialoss)
 
-    correct_prediction = tf.equal(tf.argmax(pred, 1), train_labels)
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    correct_prediction2 = tf.equal(tf.argmax(valpred, 1), val_labels)
-    validation_accuracy = tf.reduce_mean(tf.cast(correct_prediction2, tf.float32))
+    training_predictions = tf.equal(tf.argmax(pred, 1), train_labels)
+    accuracy = tf.reduce_mean(tf.cast(training_predictions, tf.float32))
+    validation_predictions = tf.equal(tf.argmax(valpred, 1), val_labels)
+    validation_accuracy = tf.reduce_mean(tf.cast(validation_predictions, tf.float32))
 
   
 tf.summary.scalar("Triplet_loss", sialoss)
@@ -259,11 +258,11 @@ writer = tf.summary.FileWriter("logs/pair/%s/"%(TRAIN_WO_SPEC_GAN), sess.graph)
 summaries = tf.summary.merge_all()
 
 print("We are going to train fake detector using ResNet based on triplet loss!!!")
-print("glen1 " + str(glen1))
+print("num_train_samples " + str(num_train_samples))
 start_lr = lr
 while (step * batch_size) < max_iter:
-    epoch1=np.floor((step*batch_size)/glen1)
-    if (((step*batch_size)%glen1 < batch_size) & (lr == 1e-4) & (epoch1 >= num_cffn_epochs)):
+    epoch1=np.floor((step*batch_size)/num_train_samples)
+    if (((step*batch_size)%num_train_samples < batch_size) & (lr == 1e-4) & (epoch1 >= num_cffn_epochs)):
         lr /= 10
     
     if epoch1 <= num_cffn_epochs:
@@ -282,7 +281,7 @@ while (step * batch_size) < max_iter:
         writer.add_summary(summaries_string, step)
     
     if step > 0 and (step % (display_step*2) == 0):
-        #rounds = tlen1 // 10
+        #rounds = num_val_samples // 10
         #pdb.set_trace()
         valacc=[]
         vis=[]
