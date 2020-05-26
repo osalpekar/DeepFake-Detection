@@ -18,10 +18,15 @@ from data_reader import setup_inputs
 #===========================================================================
 Parameters:
         n_classes: Number of classes (2 for now. one for fake and one for real)
-        data_dir:  The path to the file list directory
+        data_dir: The path to the file list directory
         image_dir: The path to the images directory (if the image list is stored in absoluate path, set this to './')
-        margin:    Marginal value in triplet loss function
-Data Preparation
+        margin: Marginal value in triplet loss function
+        learning_rate: starting learning rate used by optimizers
+        num_cffn_epochs: number of epochs trained by the siamese network
+        num_classifier_epochs: number of epochs training by classification network
+        regularization lambda: lambda constant used in regularization term in loss calculation
+
+Data Preparation:
         Data should be in /home/ubuntu/prep_data/cffn_classification_{train/val}.txt
         formatted as follows with 1 being real and 0 fake:
         image_path1 0
@@ -31,12 +36,12 @@ Data Preparation
 #===========================================================================
 '''
 
-# Some Basic Setup And Hypterparameters
+# Some Basic Setup And Hyperparameters
 n_classes = 2
 batch_size = 64
 print_interval = 80
 validation_interval = print_interval * 2
-learning_rate = tf.placeholder(tf.float32)      # Learning rate to be fed
+learning_rate = tf.placeholder(tf.float32)
 lr = 1e-4     
 regularization_lambda = 0.001
 margin = 0.8
@@ -167,11 +172,6 @@ def ResNet(_X, isTraining):
     return out, feat, saliency, classification_weights
 
 
-'''
-Maia training function:
-
-
-'''
 if not os.path.isdir('logs'):
     os.mkdir('logs')
 if not os.path.isdir('saliency_img'):
@@ -181,15 +181,10 @@ if not os.path.isdir('logs/pair'):
 if not os.path.isdir('logs/pair/'):
     os.mkdir('logs/pair/')
 
-                   # Learning rate start
 tst = tf.placeholder(tf.bool)
 iter = tf.placeholder(tf.int32)
-print('GO!!')
 
 
-
-
-# Setup the tensorflow...
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
@@ -198,13 +193,15 @@ train_file = "/home/ubuntu/prep_data/cffn_classifier_train.txt"
 val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
 image_dir = "/home/ubuntu/prep_data/"
 
-print("Preparing the training & validation data...")
+# Read Training and Validation Data
 train_data, train_labels, num_train_samples = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
 val_data, val_labels, num_val_samples = setup_inputs(sess, val_file, image_dir, batch_size=10, isTest=True)
 print("Found %d training images, and %d validation images..." % (num_train_samples, num_val_samples))
 
 max_iter = num_train_samples * total_epochs
-print("Preparing the training model with learning rate = %.5f..." % (lr))
+
+def is_first_batch_in_epoch(step):
+    return (step*batch_size) % num_train_samples < batch_size
 
 # Initialize the model for training set and validation sets
 with tf.variable_scope("ResNet") as scope:
@@ -215,7 +212,6 @@ with tf.variable_scope("ResNet") as scope:
 
 # Forming the triplet loss by hard-triplet sampler  
 with tf.name_scope('Triplet_loss'):
-    
     sialoss = tri.batch_hard_triplet_loss(train_labels, feat, margin, squared=False)
 
 def compute_regularization(classification_weights):
@@ -258,9 +254,15 @@ summaries = tf.summary.merge_all()
 print("We are going to train fake detector using ResNet based on triplet loss!!!")
 print("num_train_samples " + str(num_train_samples))
 start_lr = lr
+
 while (step * batch_size) < max_iter:
     epoch1=np.floor((step*batch_size)/num_train_samples)
-    if (((step*batch_size)%num_train_samples < batch_size) & (lr == 1e-4) & (epoch1 >= num_cffn_epochs)):
+
+    # trigger learning rate scheduling
+    if (is_first_batch_in_epoch(step) & (lr == 1e-4) & (epoch1 >= num_cffn_epochs)):
+        lr /= 10
+    
+    if (is_first_batch_in_epoch(step) & (lr == 1e-5) & (epoch1 >= num_cffn_epochs + 16)):
         lr /= 10
     
     if epoch1 <= num_cffn_epochs:
@@ -278,7 +280,7 @@ while (step * batch_size) < max_iter:
         print("Iter=%d/epoch=%d, Loss=%.6f, Triplet loss=%.6f, Training Accuracy=%.6f, lr=%f" % (step*batch_size, epoch1, loss, triplet_loss, train_accuracy, lr))
         writer.add_summary(summaries_string, step)
     
-    if step > 0 and (step % validation_interval == 0):
+    if step > 0 and step % validation_interval == 0:
         #rounds = num_val_samples // 10
         #pdb.set_trace()
         valacc=[]
@@ -291,14 +293,15 @@ while (step * batch_size) < max_iter:
         tis.append(ti)
         #tis = np.reshape(np.asarray(tis), [-1])
         #vis = np.reshape(np.asarray(vis), [-1])
-        precision=0#metrics.precision_score(tis, vis) 
-        recall=0#metrics.recall_score(tis, vis)
+        #precision=metrics.precision_score(tis, vis) 
+        #recall=metrics.recall_score(tis, vis)
         
         #sal, valimg = sess.run([saliency, val_data])
         #utils.batchsalwrite(valimg, sal, tis, vis, 'saliency_img/_Detected_')
         
 
-        print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
+        #print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
+        print("Iter=%d/epoch=%d, Validation Accuracy=%.6f" % (step*batch_size, epoch1 , np.mean(valacc)))
 
   
     step += 1
