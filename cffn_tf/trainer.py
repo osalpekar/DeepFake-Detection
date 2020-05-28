@@ -48,9 +48,11 @@ margin = 0.8
 num_cffn_epochs = 5
 num_classifier_epochs = 20
 total_epochs = num_cffn_epochs + num_classifier_epochs
-train_file = "/home/ubuntu/prep_data/cffn_classifier_train.txt"
-val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
-image_dir = "/home/ubuntu/prep_data/"
+#train_file = "/home/ubuntu/prep_data/cffn_classifier_train.txt"
+#val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
+image_dir = "/home/ubuntu/big_data/"
+#TODO: change this to the big data directory
+data_file = "/home/ubuntu/big_data/labels.json"
 
 #========================Mode basic components============================
 def activation(x,name="activation"):
@@ -194,8 +196,9 @@ sess = tf.Session(config=config)
 
 
 # Read Training and Validation Data
-train_data, train_labels, num_train_samples = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
-val_data, val_labels, num_val_samples = setup_inputs(sess, val_file, image_dir, batch_size=10, isTest=True)
+#train_data, train_labels, num_train_samples = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
+#val_data, val_labels, num_val_samples = setup_inputs(sess, val_file, image_dir, batch_size=10, isTest=True)
+train_data, train_labels, num_train_samples, val_data, val_labels, num_val_samples = setup_inputs(sess, data_file, image_dir, batch_size=batch_size)
 print("Found %d training images, and %d validation images..." % (num_train_samples, num_val_samples))
 
 max_iter = num_train_samples * total_epochs
