@@ -10,12 +10,19 @@ def read_labeled_image_list(image_list_file, training_img_dir):
     # Load the data from the json file
     with open(image_list_file) as f:
         data = json.load(f)
+
+    # the total size of the data
     num_examples = len(data)
-    num_train = int(num_examples * train_split)
     
+    # the number of data points to use. To use the whole dataset, set this to
+    # num_examples
+    num_train_subset = 1500
+
+    num_train = int(num_train_subset * train_split)
+
     # Create a list of the all keys and values (for easier slicing and ordering)
-    all_imgs = list(data.keys())
-    all_lbls = list(data.values())
+    all_imgs = list(data.keys())[:num_train_subset]
+    all_lbls = list(data.values())[:num_train_subset]
 
     # Create the lists of image filenames and labels for both the training set
     # and validation set. For the image filenames, we prepend the path of the

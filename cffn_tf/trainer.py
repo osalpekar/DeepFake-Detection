@@ -12,6 +12,7 @@ global n_classes
 import triplet_loss as tri
 import os.path
 from data_reader import setup_inputs
+import time
 
 
 '''
@@ -245,13 +246,14 @@ tf.summary.scalar('Loss', cost)
 tf.summary.scalar('Training_Accuracy', accuracy)
 tf.summary.scalar('Validation_Accuracy', validation_accuracy)
 
+datestring = time.strftime("%Y_%m_%d-%H_%M_%S")
 
 saver = tf.train.Saver()
 init = tf.global_variables_initializer()
 sess.run(init)
 step = 0
 
-writer = tf.summary.FileWriter("logs/pair/", sess.graph)
+writer = tf.summary.FileWriter("logs/" + datestring + "/", sess.graph)
 summaries = tf.summary.merge_all()
 
 print("We are going to train fake detector using ResNet based on triplet loss!!!")
