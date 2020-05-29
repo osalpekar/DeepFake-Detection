@@ -49,10 +49,7 @@ margin = 0.8
 num_cffn_epochs = 5
 num_classifier_epochs = 15
 total_epochs = num_cffn_epochs + num_classifier_epochs
-#train_file = "/home/ubuntu/prep_data/cffn_classifier_train.txt"
-#val_file = "/home/ubuntu/prep_data/cffn_classifier_val.txt"
 image_dir = "/home/ubuntu/big_data/"
-#TODO: change this to the big data directory
 data_file = "/home/ubuntu/big_data/labels.json"
 
 #========================Mode basic components============================
@@ -180,12 +177,6 @@ def ResNet(_X, isTraining):
 
 if not os.path.isdir('logs'):
     os.mkdir('logs')
-if not os.path.isdir('saliency_img'):
-    os.mkdir('saliency_img')
-if not os.path.isdir('logs/pair'):
-    os.mkdir('logs/pair')
-if not os.path.isdir('logs/pair/'):
-    os.mkdir('logs/pair/')
 
 tst = tf.placeholder(tf.bool)
 iter = tf.placeholder(tf.int32)
@@ -287,7 +278,6 @@ while (step * batch_size) < max_iter:
     
     if step > 0 and step % validation_interval == 0:
         #rounds = num_val_samples // 10
-        #pdb.set_trace()
         valacc=[]
         vis=[]
         tis=[]
