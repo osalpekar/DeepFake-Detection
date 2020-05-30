@@ -49,6 +49,8 @@ margin = 0.8
 num_cffn_epochs = 5
 num_classifier_epochs = 15
 total_epochs = num_cffn_epochs + num_classifier_epochs
+# threshold for early stopping
+val_threshold = 0.96
 image_dir = "/home/ubuntu/big_data/"
 data_file = "/home/ubuntu/big_data/labels.json"
 
@@ -297,6 +299,10 @@ while (step * batch_size) < max_iter:
 
         #print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
         print("Iter=%d/epoch=%d, Validation Accuracy=%.6f" % (step*batch_size, epoch1 , np.mean(valacc)))
+
+        # Implement early stopping
+        if np.mean(valacc) >= val_threshold and epoch1 >= 15:
+            break;
 
   
     step += 1
