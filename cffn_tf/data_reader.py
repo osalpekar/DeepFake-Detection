@@ -47,7 +47,7 @@ def read_images_from_disk(input_queue, crop_size=64):
     image_filename, label = input_queue
     file_contents = tf.read_file(image_filename)
     tensorized_image = tf.image.decode_jpeg(file_contents, channels=3)
-    
+
     # Resize the images to the appropriate size.
     tensorized_image = tf.image.resize_images(tensorized_image, [crop_size, crop_size])
     return tensorized_image, label, image_filename
@@ -59,7 +59,7 @@ def data_queue_helper(images, labels, batch_size, sess, isTrain=True):
 
     channels = 3
     image.set_shape([None, None, channels])
-        
+
     # Crop and other random augmentations for the training images
     if isTrain:
         image = tf.image.random_flip_left_right(image)
