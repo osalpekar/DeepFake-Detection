@@ -39,7 +39,7 @@ Data Preparation:
 
 # Some Basic Setup And Hyperparameters
 n_classes = 2
-batch_size = 64
+batch_size = 32
 print_interval = 80
 validation_interval = print_interval * 2
 learning_rate = tf.placeholder(tf.float32)
