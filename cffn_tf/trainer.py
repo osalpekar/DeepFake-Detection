@@ -52,7 +52,7 @@ total_epochs = num_cffn_epochs + num_classifier_epochs
 # threshold for early stopping
 val_threshold = 0.96
 image_dir = "/home/ubuntu/big_data/"
-data_file = "/home/ubuntu/big_data/labels.json"
+data_file = "/home/ubuntu/big_data/labels_new.json"
 
 #========================Mode basic components============================
 def activation(x,name="activation"):
@@ -110,8 +110,8 @@ def ResNet(_X, isTraining):
     b1 = tf.get_variable("initBias", [64], initializer=tf.truncated_normal_initializer())
     initx = conv2d('conv1', _X, w1, b1, 4, "VALID")
     
-    filters_num = [64,96,128]
-    block_num = [2,4,3]
+    filters_num = [64,96,128, 256]
+    block_num = [2,4,3, 6]
     l_cnt = 1
     x = initx
     
