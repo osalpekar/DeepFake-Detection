@@ -319,16 +319,22 @@ f.close()
 print("Model saved in file: %s" % save_path)
 
 preds, labels = sess.run([tf.argmax(valpred, 1), val_labels])
+
 conf_mat = tf.math.confusion_matrix(labels, preds)
 conf_mat = conf_mat.eval(session=sess)
+# Normalizxe the Confusion Matrix to get percentages
 cfsum = np.sum(conf_mat)
 cf_norm = conf_mat/cfsum
+plot_filename = "plots/conf_mat" + datestring + ".jpg"
+print("Confusion Matrix - saved to " + plot_filename)
 print(conf_mat)
-sns.heatmap(cf_norm,  annot=True, fmt='.2%', cmap='Blues')
-plt.savefig("plots/conf_mat" + datestring + ".jpg")
+sns.heatmap(cf_norm, annot=True, fmt='.2%', cmap='Blues')
+plt.savefig(plot_filename)
+
+# Compute F1 score, precision, and recall
 preds = np.reshape(np.asarray(preds), [-1])
 labels = np.reshape(np.asarray(labels), [-1])
-precision=metrics.precision_score(labels, preds)
-recall=metrics.recall_score(labels, preds)
+precision = metrics.precision_score(labels, preds)
+recall = metrics.recall_score(labels, preds)
 f1 = 2 * (precision * recall) / (precision + recall)
-print(f1, precision, recall)
+print("F1 Score: %0.6f, Precision: %0.6f, Recall: %0.6f " % (f1, precision, recall))
