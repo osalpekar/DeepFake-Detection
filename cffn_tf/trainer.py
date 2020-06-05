@@ -253,6 +253,8 @@ print("We are going to train fake detector using ResNet based on triplet loss!!!
 print("num_train_samples " + str(num_train_samples))
 start_lr = lr
 valaccs = []
+precisions = []
+recalls = []
 
 while (step * batch_size) < max_iter:
     epoch1=np.floor((step*batch_size)/num_train_samples)
@@ -282,17 +284,17 @@ while (step * batch_size) < max_iter:
     if step > 0 and step % validation_interval == 0:
         #rounds = num_val_samples // 10
         valacc=[]
-        vis=[]
-        tis=[]
+        #vis=[]
+        #tis=[]
         #for k in range(rounds):
         a2, vi, ti = sess.run([validation_accuracy, tf.argmax(valpred, 1), val_labels])
         valacc.append(a2)
-        vis.append(vi)
-        tis.append(ti)
-        #tis = np.reshape(np.asarray(tis), [-1])
-        #vis = np.reshape(np.asarray(vis), [-1])
-        #precision=metrics.precision_score(tis, vis) 
-        #recall=metrics.recall_score(tis, vis)
+        #vis.append(vi)
+        #tis.append(ti)
+        tis = np.reshape(np.asarray(tis), [-1])
+        vis = np.reshape(np.asarray(vis), [-1])
+        precision = metrics.precision_score(tis, vis) 
+        recall = metrics.recall_score(tis, vis)
         
         #sal, valimg = sess.run([saliency, val_data])
         #utils.batchsalwrite(valimg, sal, tis, vis, 'saliency_img/_Detected_')
@@ -301,6 +303,8 @@ while (step * batch_size) < max_iter:
         #print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
         print("Iter=%d/epoch=%d, Validation Accuracy=%.6f" % (step*batch_size, epoch1 , np.mean(valacc)))
         valaccs.append(np.mean(valacc))
+        precisions.append(precision)
+        recalls.append(recall)
 
         # Implement early stopping
         if np.mean(valacc) >= val_threshold and epoch1 >= 15:
@@ -314,7 +318,12 @@ while (step * batch_size) < max_iter:
 print("Optimization Finished!")
 save_path = saver.save(sess, "checkpoints/tf_deepUD_tri_model.ckpt")
 with open("valaccs/a" + datestring + ".txt", "w+") as f:
+    f.write("Validation Accuracy:\n")
     f.write(str(valaccs))
+    f.write("\nPrecision:\n")
+    f.write(str(precisions))
+    f.write("\nRecall:\n")
+    f.write(str(recalls))
 f.close()
 print("Model saved in file: %s" % save_path)
 
