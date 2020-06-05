@@ -50,7 +50,7 @@ num_cffn_epochs = 5
 num_classifier_epochs = 15
 total_epochs = num_cffn_epochs + num_classifier_epochs
 # threshold for early stopping
-val_threshold = 0.96
+val_threshold = 0.94
 image_dir = "/home/ubuntu/big_data/"
 data_file = "/home/ubuntu/big_data/labels_new.json"
 
@@ -190,8 +190,6 @@ sess = tf.Session(config=config)
 
 
 # Read Training and Validation Data
-#train_data, train_labels, num_train_samples = setup_inputs(sess, train_file, image_dir, batch_size=batch_size)
-#val_data, val_labels, num_val_samples = setup_inputs(sess, val_file, image_dir, batch_size=10, isTest=True)
 train_data, train_labels, num_train_samples, val_data, val_labels, num_val_samples = setup_inputs(sess, data_file, image_dir, batch_size=batch_size)
 print("Found %d training images, and %d validation images..." % (num_train_samples, num_val_samples))
 
@@ -252,6 +250,7 @@ summaries = tf.summary.merge_all()
 print("We are going to train fake detector using ResNet based on triplet loss!!!")
 print("num_train_samples " + str(num_train_samples))
 start_lr = lr
+valaccs = []
 
 while (step * batch_size) < max_iter:
     epoch1=np.floor((step*batch_size)/num_train_samples)
@@ -299,13 +298,20 @@ while (step * batch_size) < max_iter:
 
         #print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
         print("Iter=%d/epoch=%d, Validation Accuracy=%.6f" % (step*batch_size, epoch1 , np.mean(valacc)))
+        valaccs.append(np.mean(valacc))
 
         # Implement early stopping
         if np.mean(valacc) >= val_threshold and epoch1 >= 15:
             break;
 
+        if np.mean(valacc) >= 0.89 and lr == 1e-5:
+            lr /= 10
+
   
     step += 1
 print("Optimization Finished!")
 save_path = saver.save(sess, "checkpoints/tf_deepUD_tri_model.ckpt")
+with open("valaccs/a" + datestring + ".txt", "w+") as f:
+    f.write(str(valaccs))
+f.close()
 print("Model saved in file: %s" % save_path)
