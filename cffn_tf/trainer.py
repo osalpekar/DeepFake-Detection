@@ -48,8 +48,8 @@ learning_rate = tf.placeholder(tf.float32)
 lr = 1e-4     
 regularization_lambda = 0.001
 margin = 0.8
-num_cffn_epochs = 5
-num_classifier_epochs = 15
+num_cffn_epochs = 3
+num_classifier_epochs = 3
 total_epochs = num_cffn_epochs + num_classifier_epochs
 # threshold for early stopping
 val_threshold = 0.94
@@ -287,7 +287,7 @@ while (step * batch_size) < max_iter:
         #vis=[]
         #tis=[]
         #for k in range(rounds):
-        a2, vi, ti = sess.run([validation_accuracy, tf.argmax(valpred, 1), val_labels])
+        a2, vis, tis = sess.run([validation_accuracy, tf.argmax(valpred, 1), val_labels])
         valacc.append(a2)
         #vis.append(vi)
         #tis.append(ti)
