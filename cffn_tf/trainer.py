@@ -13,6 +13,8 @@ import triplet_loss as tri
 import os.path
 from data_reader import setup_inputs
 import time
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 '''
@@ -315,3 +317,18 @@ with open("valaccs/a" + datestring + ".txt", "w+") as f:
     f.write(str(valaccs))
 f.close()
 print("Model saved in file: %s" % save_path)
+
+preds, labels = sess.run([tf.argmax(valpred, 1), val_labels])
+conf_mat = tf.math.confusion_matrix(labels, preds)
+conf_mat = conf_mat.eval(session=sess)
+cfsum = np.sum(conf_mat)
+cf_norm = conf_mat/cfsum
+print(conf_mat)
+sns.heatmap(cf_norm,  annot=True, fmt='.2%', cmap='Blues')
+plt.savefig("plots/conf_mat" + datestring + ".jpg")
+preds = np.reshape(np.asarray(preds), [-1])
+labels = np.reshape(np.asarray(labels), [-1])
+precision=metrics.precision_score(labels, preds)
+recall=metrics.recall_score(labels, preds)
+f1 = 2 * (precision * recall) / (precision + recall)
+print(f1, precision, recall)

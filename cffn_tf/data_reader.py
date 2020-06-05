@@ -16,7 +16,7 @@ def read_labeled_image_list(image_list_file, training_img_dir):
     
     # the number of data points to use. To use the whole dataset, set this to
     # num_examples
-    num_train_subset = num_examples
+    num_train_subset = 5000#num_examples
 
     num_train = int(num_train_subset * train_split)
 
