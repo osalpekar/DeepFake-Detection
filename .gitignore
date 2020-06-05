@@ -10,8 +10,13 @@ venv/
 # test images
 .jpg
 
+# Output folders
 __pycache__/
 checkpoints/
 logs/
 old_logs/
 valaccs/
+plots/
+
+# Random Scripts
+data_preparation/temp.py
