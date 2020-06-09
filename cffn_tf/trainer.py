@@ -284,15 +284,9 @@ while (step * batch_size) < max_iter:
         writer.add_summary(summaries_string, step)
     
     if step > 0 and step % validation_interval == 0:
-        #rounds = num_val_samples // 10
         valacc=[]
-        #vis=[]
-        #tis=[]
-        #for k in range(rounds):
         a2, preds, vlbls = sess.run([validation_accuracy, tf.argmax(valpred, 1), val_labels])
         valacc.append(a2)
-        #vis.append(vi)
-        #tis.append(ti)
         conf_mat = tf.math.confusion_matrix(vlbls, preds)
         conf_mat = conf_mat.eval(session=sess)
         precision = compute_precision(conf_mat)
@@ -327,7 +321,7 @@ print("Model saved in file: %s" % save_path)
 preds, labels = sess.run([tf.argmax(valpred, 1), val_labels])
 conf_mat = tf.math.confusion_matrix(labels, preds)
 conf_mat = conf_mat.eval(session=sess)
-# Normalizxe the Confusion Matrix to get percentages
+# Normalize the Confusion Matrix to get percentages
 cfsum = np.sum(conf_mat)
 cf_norm = conf_mat/cfsum
 plot_filename = "plots/conf_mat" + datestring + ".jpg"
