@@ -15,6 +15,7 @@ from data_reader import setup_inputs
 import time
 import seaborn as sns
 import matplotlib.pyplot as plt
+from metrics import compute_precision, compute_recall, compute_f1
 
 
 '''
@@ -48,8 +49,8 @@ learning_rate = tf.placeholder(tf.float32)
 lr = 1e-4     
 regularization_lambda = 0.001
 margin = 0.8
-num_cffn_epochs = 3
-num_classifier_epochs = 3
+num_cffn_epochs = 5
+num_classifier_epochs = 15
 total_epochs = num_cffn_epochs + num_classifier_epochs
 # threshold for early stopping
 val_threshold = 0.94
@@ -251,6 +252,7 @@ summaries = tf.summary.merge_all()
 
 print("We are going to train fake detector using ResNet based on triplet loss!!!")
 print("num_train_samples " + str(num_train_samples))
+print("num_val_samples " + str(num_val_samples))
 start_lr = lr
 valaccs = []
 precisions = []
@@ -287,20 +289,15 @@ while (step * batch_size) < max_iter:
         #vis=[]
         #tis=[]
         #for k in range(rounds):
-        a2, vis, tis = sess.run([validation_accuracy, tf.argmax(valpred, 1), val_labels])
+        a2, preds, vlbls = sess.run([validation_accuracy, tf.argmax(valpred, 1), val_labels])
         valacc.append(a2)
         #vis.append(vi)
         #tis.append(ti)
-        tis = np.reshape(np.asarray(tis), [-1])
-        vis = np.reshape(np.asarray(vis), [-1])
-        precision = metrics.precision_score(tis, vis) 
-        recall = metrics.recall_score(tis, vis)
-        
-        #sal, valimg = sess.run([saliency, val_data])
-        #utils.batchsalwrite(valimg, sal, tis, vis, 'saliency_img/_Detected_')
-        
+        conf_mat = tf.math.confusion_matrix(vlbls, preds)
+        conf_mat = conf_mat.eval(session=sess)
+        precision = compute_precision(conf_mat)
+        recall = compute_recall(conf_mat)
 
-        #print("Iter=%d/epoch=%d, Validation Accuracy=%.6f, Precision=%.6f, Recall=%.6f" % (step*batch_size, epoch1 , np.mean(valacc), precision, recall))
         print("Iter=%d/epoch=%d, Validation Accuracy=%.6f" % (step*batch_size, epoch1 , np.mean(valacc)))
         valaccs.append(np.mean(valacc))
         precisions.append(precision)
@@ -328,7 +325,6 @@ f.close()
 print("Model saved in file: %s" % save_path)
 
 preds, labels = sess.run([tf.argmax(valpred, 1), val_labels])
-
 conf_mat = tf.math.confusion_matrix(labels, preds)
 conf_mat = conf_mat.eval(session=sess)
 # Normalizxe the Confusion Matrix to get percentages
@@ -341,9 +337,7 @@ sns.heatmap(cf_norm, annot=True, fmt='.2%', cmap='Blues')
 plt.savefig(plot_filename)
 
 # Compute F1 score, precision, and recall
-preds = np.reshape(np.asarray(preds), [-1])
-labels = np.reshape(np.asarray(labels), [-1])
-precision = metrics.precision_score(labels, preds)
-recall = metrics.recall_score(labels, preds)
-f1 = 2 * (precision * recall) / (precision + recall)
+precision = compute_precision(conf_mat)
+recall = compute_recall(conf_mat)
+f1 = compute_f1(conf_mat)
 print("F1 Score: %0.6f, Precision: %0.6f, Recall: %0.6f " % (f1, precision, recall))
