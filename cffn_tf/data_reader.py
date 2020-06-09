@@ -3,7 +3,7 @@ import json
 import tensorflow as tf
 import numpy as np
 
-train_split = 0.9
+train_split = 0.95
 label_dict = {'REAL': 1, 'FAKE': 0}
 
 def read_labeled_image_list(image_list_file, training_img_dir):
@@ -16,7 +16,7 @@ def read_labeled_image_list(image_list_file, training_img_dir):
     
     # the number of data points to use. To use the whole dataset, set this to
     # num_examples
-    num_train_subset = 1000#num_examples
+    num_train_subset = num_examples
 
     num_train = int(num_train_subset * train_split)
 
